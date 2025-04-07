@@ -1,6 +1,6 @@
 ﻿using BUAADeepseekWebAPI.Credentials;
 
-namespace dpask
+namespace BUAADeepseekWebAPI
 {
     class FileCredentialProvider : ICredentialProvider
     {

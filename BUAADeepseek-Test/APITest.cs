@@ -26,7 +26,7 @@ namespace BUAADeepseek_Test
         [Test]
         public async Task GetUserInfoTest_ShouldSuccess()
         {
-            var deepSeek = new BUAADeepseek(new MemoryCredentialProvider(Cookie));
+            var deepSeek = new BUAADeepseek(new MemoryCredentialProvider(Cookie), new MemoryContextManager());
 
             bool chatReceived = false;
 

@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "dpask": {
+      "commandName": "Project",
+      "commandLineArgs": "--no-context 你好！"
+    }
+  }
+}

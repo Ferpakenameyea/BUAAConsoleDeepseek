@@ -1,10 +1,7 @@
 ﻿using BUAADeepseekWebAPI.Credentials;
 using BUAADeepseekWebAPI.Exceptions;
 using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
-using System.Diagnostics.CodeAnalysis;
 using System.Text;
-using System.Web;
 
 namespace BUAADeepseekWebAPI
 {
@@ -12,15 +9,14 @@ namespace BUAADeepseekWebAPI
     {
         private readonly ICredentialProvider _credentialProvider;
         private readonly HttpClient _httpClient = new();
-        private readonly LinkedList<History> histories = new();
-        private readonly int maxContext;
+        private readonly IContextManager _contextManager;
 
         public BUAADeepseek(
             ICredentialProvider credentialProvider,
-            int maxContext=50)
+            IContextManager contextManager)
         {
             _credentialProvider = credentialProvider;
-            this.maxContext = maxContext;
+            _contextManager = contextManager;
         }
 
         private async Task<Response<T>> AccessWithCredential<T>(HttpRequestMessage request)
@@ -52,19 +48,29 @@ namespace BUAADeepseekWebAPI
             StringBuilder builder = new();
             var request = new HttpRequestMessage(HttpMethod.Post, DeepseekURL.BASE + DeepseekURL.COMPOSE_CHAT);
 
-            var form = new MultipartFormDataContent();
-            form.Add(new StringContent(content), "content");
-
-            int index = 0;
-            foreach (var history in this.histories)
+            var form = new MultipartFormDataContent
             {
-                form.Add(new StringContent(history.Role), $"history[{index}][role]");
-                form.Add(new StringContent(history.Content), $"history[{index}][content]");
+                { new StringContent(content), "content" }
+            };
+
+            if (useContext)
+            {
+                int index = 0;
+                foreach (var (user, system) in this._contextManager.Enumerate())
+                {
+                    form.Add(new StringContent(user.Role), $"history[{index}][role]");
+                    form.Add(new StringContent(user.Content), $"history[{index}][content]");
+                    index++;
+                    form.Add(new StringContent(system.Role), $"history[{index}][role]");
+                    form.Add(new StringContent(system.Content), $"history[{index}][content]");
+                    index++;
+                }
             }
 
             form.Add(new StringContent("2"), "compose_id");
             form.Add(new StringContent(deepSearch ? "1" : "2"), "deep_search");
             form.Add(new StringContent(internetSearch ? "1" : "2"), "internet_search");
+
 
             request.Content = form;
 
@@ -88,12 +94,11 @@ namespace BUAADeepseekWebAPI
                 }
             }
 
-            histories.AddLast(new History() { Role = Roles.USER, Content = content }); 
-            histories.AddLast(new History() { Role = Roles.ASSISTANT, Content = builder.ToString() });
-
-            while (histories.Count > this.maxContext)
+            if (useContext)
             {
-                histories.RemoveFirst();
+                _contextManager.AddHistory((
+                    new History() { Role = Roles.USER, Content = content },
+                    new History() { Role = Roles.ASSISTANT, Content = builder.ToString() }));
             }
         }
     }
