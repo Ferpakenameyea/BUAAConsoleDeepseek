@@ -179,7 +179,7 @@ internal class AIInteractionArgParser
 
         for (int i = 0; i < args.Length - 1; i++)
         {
-            if (args[i] == "--no-context")
+            if (args[i] is "--no-context" or "-nc")
             {
                 UseContext = false;
             }
